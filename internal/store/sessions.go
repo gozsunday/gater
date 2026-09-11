@@ -35,9 +35,6 @@ func (s *SessionStore) Create(ctx context.Context, session *Session) error {
     updated_at
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	err := s.pool.QueryRow(
 		ctx, query, session.UserID, session.TokenHash, session.IPAddress,
 		session.UserAgent, session.ExpiresAt,
@@ -65,9 +62,6 @@ func (s *SessionStore) Get(ctx context.Context, hashedToken string) (*Session, e
     AND expires_at > $2
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	session := &Session{}
 	err := s.pool.QueryRow(ctx, query, hashedToken, time.Now().UTC()).Scan(
 		&session.ID, &session.UserID, &session.TokenHash, &session.IPAddress,
@@ -92,9 +86,6 @@ func (s *SessionStore) Delete(ctx context.Context, sessionID uuid.UUID) error {
     WHERE id = $1
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	if _, err := s.pool.Exec(ctx, query, sessionID); err != nil {
 		return fmt.Errorf("store: delete session: %w", err)
 	}
@@ -107,9 +98,6 @@ func (s *SessionStore) DeleteAll(ctx context.Context, userID uuid.UUID) error {
     DELETE FROM sessions
     WHERE user_id = $1
   `
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	if _, err := s.pool.Exec(ctx, query, userID); err != nil {
 		return fmt.Errorf("store: delete all sessions: %w", err)

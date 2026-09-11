@@ -35,9 +35,6 @@ func (s *UserStore) Create(ctx context.Context, user *User) error {
     RETURNING id, name, email, password_hash, email_verified, image, role, created_at, updated_at
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	err := s.pool.QueryRow(
 		ctx, query, user.Name, user.Email, user.PasswordHash,
 		user.Image, user.EmailVerified,
@@ -64,9 +61,6 @@ func (s *UserStore) GetByID(ctx context.Context, id string) (*User, error) {
     WHERE id = $1
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	user := &User{}
 	err := s.pool.QueryRow(ctx, query, id).Scan(
 		&user.ID, &user.Name, &user.Email, &user.PasswordHash, &user.EmailVerified,
@@ -91,9 +85,6 @@ func (s *UserStore) GetByEmail(ctx context.Context, email string) (*User, error)
     FROM users 
     WHERE email = $1
   `
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	user := &User{}
 	err := s.pool.QueryRow(ctx, query, email).Scan(
@@ -120,9 +111,6 @@ func (s *UserStore) MarkVerified(ctx context.Context, email string) error {
     WHERE email = $1
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	ct, err := s.pool.Exec(ctx, query, email, true)
 	if err != nil {
 		return fmt.Errorf("store: mark user verified: %w", err)
@@ -140,9 +128,6 @@ func (s *UserStore) ResetPassword(ctx context.Context, email, hashedPassword str
     SET password_hash = $2
     WHERE email = $1
   `
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	ct, err := s.pool.Exec(ctx, query, email, hashedPassword)
 	if err != nil {
@@ -162,9 +147,6 @@ func (s *UserStore) BecomeOrganizer(ctx context.Context, userID string) (*User, 
     WHERE id = $1
     RETURNING id, name, email, password_hash, email_verified, image, role, created_at, updated_at
   `
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	user := &User{}
 	err := s.pool.QueryRow(ctx, query, userID, RoleOrganizer).Scan(

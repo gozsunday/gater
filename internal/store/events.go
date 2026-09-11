@@ -48,9 +48,6 @@ func (s *EventsStore) Create(ctx context.Context, event *Event) error {
     max_tickets_per_purchase, material_changed_at, created_at, updated_at
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	err := s.pool.QueryRow(
 		ctx, query, event.OrganizerID, event.Name, event.Description, event.Location,
 		event.StartsAt, event.EndsAt, event.Capacity, event.CancellationAllowed,
@@ -84,9 +81,6 @@ func (s *EventsStore) Update(ctx context.Context, event *Event) error {
     max_tickets_per_purchase, material_changed_at, created_at, updated_at
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	err := s.pool.QueryRow(
 		ctx, query, event.ID, event.Name, event.Description, event.Location,
 		event.StartsAt, event.EndsAt, event.Capacity, event.CancellationAllowed,
@@ -111,9 +105,6 @@ func (s *EventsStore) Delete(ctx context.Context, id string) error {
     WHERE id = $1
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	ct, err := s.pool.Exec(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("store: delete event: %w", err)
@@ -134,9 +125,6 @@ func (s *EventsStore) Publish(ctx context.Context, id string) (*Event, error) {
     ends_at, capacity, cancellation_allowed, cancellation_hours_before,
     max_tickets_per_purchase, material_changed_at, created_at, updated_at
   `
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	event := &Event{}
 	err := s.pool.QueryRow(ctx, query, id).Scan(
@@ -166,9 +154,6 @@ func (s *EventsStore) Cancel(ctx context.Context, id string) (*Event, error) {
     max_tickets_per_purchase, material_changed_at, created_at, updated_at
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	event := &Event{}
 	err := s.pool.QueryRow(ctx, query, id).Scan(
 		&event.ID, &event.OrganizerID, &event.Name, &event.Description,
@@ -193,9 +178,6 @@ func (s *EventsStore) SetStatus(ctx context.Context, id, from, to string) error 
     WHERE id = $1 AND status = $2
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	if _, err := s.pool.Exec(ctx, query, id, from, to); err != nil {
 		return fmt.Errorf("store: set event status: %w", err)
 	}
@@ -211,9 +193,6 @@ func (s *EventsStore) GetByID(ctx context.Context, id string) (*Event, error) {
     FROM events
     WHERE id = $1
   `
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	event := &Event{}
 	err := s.pool.QueryRow(ctx, query, id).Scan(
@@ -257,9 +236,6 @@ func (s *EventsStore) GetAllPublished(
 	query += `ORDER BY starts_at ASC, id ASC LIMIT $` + strconv.Itoa(len(args)+1)
 	args = append(args, limit)
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	rows, err := s.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("store: get published events: %w", err)
@@ -283,9 +259,6 @@ func (s *EventsStore) EndAllExpired(ctx context.Context) ([]*Event, error) {
     ends_at, capacity, cancellation_allowed, cancellation_hours_before,
     max_tickets_per_purchase, material_changed_at, created_at, updated_at
   `
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	rows, err := s.pool.Query(ctx, query)
 	if err != nil {

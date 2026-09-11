@@ -35,9 +35,6 @@ func (s *TiersStore) Create(ctx context.Context, tier *Tier) error {
     created_at, updated_at
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	err := s.pool.QueryRow(
 		ctx, query, tier.EventID, tier.Name, tier.Price, tier.Quantity, tier.Remaining,
 	).Scan(
@@ -57,9 +54,6 @@ func (s *TiersStore) Delete(ctx context.Context, id, eventID string) error {
     WHERE id = $1 AND event_id = $2
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	ct, err := s.pool.Exec(ctx, query, id, eventID)
 	if err != nil {
 		return fmt.Errorf("store: delete tier: %w", err)
@@ -78,9 +72,6 @@ func (s *TiersStore) CountByEvent(ctx context.Context, eventID string) (int, err
     WHERE event_id = $1
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	var count int
 	err := s.pool.QueryRow(ctx, query, eventID).Scan(&count)
 	if err != nil {
@@ -97,9 +88,6 @@ func (s *TiersStore) GetByID(ctx context.Context, id string) (*Tier, error) {
     FROM ticket_tiers
     WHERE id = $1
   `
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	tier := &Tier{}
 	err := s.pool.QueryRow(ctx, query, id).Scan(
@@ -127,9 +115,6 @@ func (s *TiersStore) Update(ctx context.Context, tier *Tier) error {
     created_at, updated_at
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	err := s.pool.QueryRow(
 		ctx, query, tier.ID, tier.Name, tier.Price, tier.Quantity,
 		tier.Remaining, tier.Status,
@@ -153,9 +138,6 @@ func (s *TiersStore) ListByEvent(ctx context.Context, eventID string) ([]*Tier, 
     ORDER BY created_at ASC
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	rows, err := s.pool.Query(ctx, query, eventID)
 	if err != nil {
 		return nil, fmt.Errorf("store: list tiers by event: %w", err)
@@ -176,9 +158,6 @@ func (s *TiersStore) SumQuantityByEvent(ctx context.Context, eventID string) (in
     FROM ticket_tiers
     WHERE event_id = $1
   `
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	var sum int
 	err := s.pool.QueryRow(ctx, query, eventID).Scan(&sum)

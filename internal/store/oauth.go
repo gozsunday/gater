@@ -37,9 +37,6 @@ func (s *OAuthStore) GetByProviderAndAccountID(
     AND provider_account_id = $2
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	account := &OAuthAccount{}
 	err := s.pool.QueryRow(ctx, query, provider, accountID).Scan(
 		&account.ID, &account.UserID, &account.Provider, &account.ProviderAccountID,
@@ -66,9 +63,6 @@ func (s *OAuthStore) Create(ctx context.Context, account *OAuthAccount) error {
     VALUES ($1, $2, $3, $4)
     RETURNING id, user_id, provider, provider_account_id, scope, created_at, updated_at
   `
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	err := s.pool.QueryRow(
 		ctx, query, account.UserID, account.Provider, account.ProviderAccountID, account.Scope,

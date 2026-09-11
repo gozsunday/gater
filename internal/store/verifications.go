@@ -35,9 +35,6 @@ func (v *VerificationStore) Create(ctx context.Context, params CreateVerificatio
     VALUES ($1, $2, $3)
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	_, err := v.pool.Exec(
 		ctx, query, params.Identifier,
 		params.HashedToken, params.ExpiresAt,
@@ -55,9 +52,6 @@ func (v *VerificationStore) Get(ctx context.Context, hashedToken string) (*Verif
     FROM verifications
     WHERE value = $1
   `
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	verification := &Verifications{}
 	err := v.pool.QueryRow(ctx, query, hashedToken).Scan(
@@ -86,9 +80,6 @@ func (v *VerificationStore) GetLatest(ctx context.Context, identifier string) (*
     LIMIT 1
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	verification := &Verifications{}
 	err := v.pool.QueryRow(ctx, query, identifier).Scan(
 		&verification.ID, &verification.Identifier, &verification.Value, &verification.ExpiresAt,
@@ -115,9 +106,6 @@ func (v *VerificationStore) CountSince(ctx context.Context, identifier string, s
     AND created_at > $2
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	count := 0
 	timeCutoff := time.Now().UTC().Add(-since)
 
@@ -135,9 +123,6 @@ func (v *VerificationStore) Delete(ctx context.Context, ID string) error {
     WHERE id = $1
   `
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	if _, err := v.pool.Exec(ctx, query, ID); err != nil {
 		return fmt.Errorf("store: delete verification: %w", err)
 	}
@@ -150,9 +135,6 @@ func (v *VerificationStore) DeleteByIdentifier(ctx context.Context, identifier s
     DELETE FROM verifications
     WHERE identifier = $1
   `
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	if _, err := v.pool.Exec(ctx, query, identifier); err != nil {
 		return fmt.Errorf("store: delete verification by identifier: %w", err)

@@ -52,9 +52,6 @@ func (s *WaitlistStore) Create(ctx context.Context, entry *WaitlistEntry) error 
 		created_at, updated_at
 	`
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	err := s.pool.QueryRow(
 		ctx, query, entry.UserID, entry.TierID,
 	).Scan(
@@ -80,9 +77,6 @@ func (s *WaitlistStore) DeleteByUserAndTier(ctx context.Context, userID, tierID 
 		WHERE user_id = $1 AND tier_id = $2
 	`
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	ct, err := s.pool.Exec(ctx, query, userID, tierID)
 	if err != nil {
 		return fmt.Errorf("store: delete waitlist entry: %w", err)
@@ -106,9 +100,6 @@ func (s *WaitlistStore) ListByEvent(ctx context.Context, eventID string) ([]Wait
 		WHERE t.event_id = $1
 		ORDER BY w.created_at ASC
 	`
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	rows, err := s.pool.Query(ctx, query, eventID)
 	if err != nil {
@@ -147,9 +138,6 @@ func (s *WaitlistStore) ExpireReservations(ctx context.Context) ([]*WaitlistEntr
     RETURNING id, user_id, tier_id, status, notified_at, expires_at,
 		created_at, updated_at
   `
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	rows, err := s.pool.Query(ctx, query)
 	if err != nil {
@@ -253,9 +241,6 @@ func (s *WaitlistStore) DeleteByEvent(ctx context.Context, eventID string) error
 			SELECT id FROM ticket_tiers WHERE event_id = $1
 		)
 	`
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	if _, err := s.pool.Exec(ctx, query, eventID); err != nil {
 		return fmt.Errorf("store: delete waitlist by event: %w", err)

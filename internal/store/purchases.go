@@ -63,9 +63,6 @@ func (s *PurchasesStore) ListByUser(
 		LIMIT $2 OFFSET $3
 	`
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	rows, err := s.pool.Query(ctx, query, userID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("store: list purchases by user: %w", err)
@@ -103,9 +100,6 @@ func (s *PurchasesStore) CountByUser(ctx context.Context, userID string) (int, e
 		WHERE user_id = $1
 	`
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	var count int
 	err := s.pool.QueryRow(ctx, query, userID).Scan(&count)
 	if err != nil {
@@ -128,9 +122,6 @@ func (s *PurchasesStore) ListConfirmedBuyersByEvent(
 		WHERE t.event_id = $1 AND p.status = 'confirmed'
 		ORDER BY u.email ASC
 	`
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	rows, err := s.pool.Query(ctx, query, eventID)
 	if err != nil {
@@ -155,9 +146,6 @@ func (s *PurchasesStore) SumConfirmedQuantityByEvent(ctx context.Context, eventI
 		WHERE t.event_id = $1 AND p.status = 'confirmed'
 	`
 
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
-
 	var sum int
 	err := s.pool.QueryRow(ctx, query, eventID).Scan(&sum)
 	if err != nil {
@@ -174,9 +162,6 @@ func (s *PurchasesStore) GetByID(ctx context.Context, id, userID string) (*Purch
 		FROM purchases
 		WHERE id = $1 AND user_id = $2
 	`
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	purchase := &Purchase{}
 	err := s.pool.QueryRow(ctx, query, id, userID).Scan(
@@ -203,9 +188,6 @@ func (s *PurchasesStore) ListTicketsByPurchase(ctx context.Context, purchaseID s
 		WHERE purchase_id = $1
 		ORDER BY created_at ASC
 	`
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	rows, err := s.pool.Query(ctx, query, purchaseID)
 	if err != nil {
@@ -555,9 +537,6 @@ func (s *PurchasesStore) HasConfirmedPurchase(ctx context.Context, userID, tierI
 			WHERE user_id = $1 AND tier_id = $2 AND status = 'confirmed'
 		)
 	`
-
-	ctx, cancel := context.WithTimeout(ctx, queryTimeoutDuration)
-	defer cancel()
 
 	var exists bool
 	err := s.pool.QueryRow(ctx, query, userID, tierID).Scan(&exists)
