@@ -65,7 +65,7 @@ func (s *PurchasesStore) ListByUser(
 
 	rows, err := s.pool.Query(ctx, query, userID, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("store: list purchases by user: %w", err)
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -80,13 +80,13 @@ func (s *PurchasesStore) ListByUser(
 			&summary.Tier.ID, &summary.Tier.Name, &summary.Tier.Price,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("store: list purchases by user: %w", err)
+			return nil, err
 		}
 		summaries = append(summaries, summary)
 	}
 	// get errors the iteration itself hit
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("store: list purchases by user: %w", err)
+		return nil, err
 	}
 
 	return summaries, nil
@@ -103,7 +103,7 @@ func (s *PurchasesStore) CountByUser(ctx context.Context, userID string) (int, e
 	var count int
 	err := s.pool.QueryRow(ctx, query, userID).Scan(&count)
 	if err != nil {
-		return 0, fmt.Errorf("store: count purchases by user: %w", err)
+		return 0, err
 	}
 
 	return count, nil
@@ -125,13 +125,13 @@ func (s *PurchasesStore) ListConfirmedBuyersByEvent(
 
 	rows, err := s.pool.Query(ctx, query, eventID)
 	if err != nil {
-		return nil, fmt.Errorf("store: list confirmed buyers by event: %w", err)
+		return nil, err
 	}
 	defer rows.Close()
 
 	buyers, err := pgx.CollectRows(rows, pgx.RowToAddrOf[User])
 	if err != nil {
-		return nil, fmt.Errorf("store: collect confirmed buyers by event: %w", err)
+		return nil, err
 	}
 
 	return buyers, nil
@@ -149,7 +149,7 @@ func (s *PurchasesStore) SumConfirmedQuantityByEvent(ctx context.Context, eventI
 	var sum int
 	err := s.pool.QueryRow(ctx, query, eventID).Scan(&sum)
 	if err != nil {
-		return 0, fmt.Errorf("store: sum confirmed quantity by event: %w", err)
+		return 0, err
 	}
 
 	return sum, nil
@@ -169,12 +169,10 @@ func (s *PurchasesStore) GetByID(ctx context.Context, id, userID string) (*Purch
 		&purchase.Total, &purchase.Status, &purchase.CreatedAt, &purchase.UpdatedAt,
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, pgx.ErrNoRows):
-			return nil, fmt.Errorf("store: get purchase by id: %w", ErrNotFound)
-		default:
-			return nil, fmt.Errorf("store: get purchase by id: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
 		}
+		return nil, err
 	}
 
 	return purchase, nil
@@ -191,14 +189,14 @@ func (s *PurchasesStore) ListTicketsByPurchase(ctx context.Context, purchaseID s
 
 	rows, err := s.pool.Query(ctx, query, purchaseID)
 	if err != nil {
-		return nil, fmt.Errorf("store: list tickets by purchase: %w", err)
+		return nil, err
 	}
 	defer rows.Close()
 
 	// create a slice of Ticket from the rows gotten from the DB query
 	tickets, err := pgx.CollectRows(rows, pgx.RowTo[Ticket])
 	if err != nil {
-		return nil, fmt.Errorf("store: collect tickets by purchase: %w", err)
+		return nil, err
 	}
 
 	return tickets, nil
@@ -233,7 +231,7 @@ func (s *PurchasesStore) Create(
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return fmt.Errorf("store: create purchase: %w", ErrNotFound)
+			return ErrNotFound
 		}
 		return fmt.Errorf("store: create purchase: lock tier: %w", err)
 	}
@@ -255,11 +253,11 @@ func (s *PurchasesStore) Create(
 
 	switch {
 	case eventStatus != "published":
-		return fmt.Errorf("store: create purchase: %w", ErrEventNotPublished)
+		return ErrEventNotPublished
 	case purchase.Quantity > maxTicketsPerPurchase:
-		return fmt.Errorf("store: create purchase: %w", ErrExceedsMaxPerPurchase)
+		return ErrExceedsMaxPerPurchase
 	case tierStatus != "available" || remaining < purchase.Quantity:
-		return fmt.Errorf("store: create purchase: %w", ErrInsufficientRemaining)
+		return ErrInsufficientRemaining
 	}
 
 	// take the inventory
@@ -373,13 +371,13 @@ func (s *PurchasesStore) Cancel(
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, wasSoldOut, fmt.Errorf("store: cancel purchase: %w", ErrNotFound)
+			return nil, wasSoldOut, ErrNotFound
 		}
 		return nil, wasSoldOut, fmt.Errorf("store: cancel purchase: lock purchase: %w", err)
 	}
 	// if purchase is already cancelled, return error
 	if purchase.Status != "confirmed" {
-		return nil, wasSoldOut, fmt.Errorf("store: cancel purchase: %w", ErrAlreadyCancelled)
+		return nil, wasSoldOut, ErrAlreadyCancelled
 	}
 
 	// load the tier + event rules
@@ -419,9 +417,9 @@ func (s *PurchasesStore) Cancel(
 	now := time.Now()
 	switch {
 	case !now.Before(startsAt):
-		return nil, wasSoldOut, fmt.Errorf("store: cancel purchase: %w", ErrEventStarted)
+		return nil, wasSoldOut, ErrEventStarted
 	case !cancellationAllowed:
-		return nil, wasSoldOut, fmt.Errorf("store: cancel purchase: %w", ErrCancellationNotAllowed)
+		return nil, wasSoldOut, ErrCancellationNotAllowed
 	}
 
 	// two ways to be inside a valid cancellation window:
@@ -432,7 +430,7 @@ func (s *PurchasesStore) Cancel(
 	graceOpen := materialChangedAt != nil &&
 		now.Before(materialChangedAt.Add(materialChangeGracePeriod))
 	if windowClosed && !graceOpen {
-		return nil, wasSoldOut, fmt.Errorf("store: cancel purchase: %w", ErrOutsideCancellationWindow)
+		return nil, wasSoldOut, ErrOutsideCancellationWindow
 	}
 
 	// flip purchase status from confirmed to cancelled
@@ -541,7 +539,7 @@ func (s *PurchasesStore) HasConfirmedPurchase(ctx context.Context, userID, tierI
 	var exists bool
 	err := s.pool.QueryRow(ctx, query, userID, tierID).Scan(&exists)
 	if err != nil {
-		return false, fmt.Errorf("store: has confirmed purchase: %w", err)
+		return false, err
 	}
 
 	return exists, nil

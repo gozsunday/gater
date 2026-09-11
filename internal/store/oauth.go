@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -44,12 +43,10 @@ func (s *OAuthStore) GetByProviderAndAccountID(
 	)
 
 	if err != nil {
-		switch {
-		case errors.Is(err, pgx.ErrNoRows):
-			return nil, fmt.Errorf("store: get oauth account: %w", ErrNotFound)
-		default:
-			return nil, fmt.Errorf("store: get oauth account: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
 		}
+		return nil, err
 	}
 
 	return account, nil
@@ -74,9 +71,9 @@ func (s *OAuthStore) Create(ctx context.Context, account *OAuthAccount) error {
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return fmt.Errorf("store: create oauth account: %w", ErrConflict)
+			return ErrConflict
 		}
-		return fmt.Errorf("store: create oauth account: %w", err)
+		return err
 	}
 
 	return nil

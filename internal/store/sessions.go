@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -46,9 +45,9 @@ func (s *SessionStore) Create(ctx context.Context, session *Session) error {
 	if err != nil {
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return fmt.Errorf("store: create session: %w", ErrConflict)
+			return ErrConflict
 		}
-		return fmt.Errorf("store: create session: %w", err)
+		return err
 	}
 
 	return nil
@@ -69,12 +68,10 @@ func (s *SessionStore) Get(ctx context.Context, hashedToken string) (*Session, e
 	)
 
 	if err != nil {
-		switch {
-		case errors.Is(err, pgx.ErrNoRows):
-			return nil, fmt.Errorf("store: get session: %w", ErrNotFound)
-		default:
-			return nil, fmt.Errorf("store: get session: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
 		}
+		return nil, err
 	}
 
 	return session, nil
@@ -87,7 +84,7 @@ func (s *SessionStore) Delete(ctx context.Context, sessionID uuid.UUID) error {
   `
 
 	if _, err := s.pool.Exec(ctx, query, sessionID); err != nil {
-		return fmt.Errorf("store: delete session: %w", err)
+		return err
 	}
 
 	return nil
@@ -100,7 +97,7 @@ func (s *SessionStore) DeleteAll(ctx context.Context, userID uuid.UUID) error {
   `
 
 	if _, err := s.pool.Exec(ctx, query, userID); err != nil {
-		return fmt.Errorf("store: delete all sessions: %w", err)
+		return err
 	}
 
 	return nil

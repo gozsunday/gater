@@ -68,18 +68,18 @@ func (s *TicketsStore) CheckIn(ctx context.Context, ticketID, eventID uuid.UUID)
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("store: check in tickets: %w", ErrNotFound)
+			return nil, ErrNotFound
 		}
 		return nil, fmt.Errorf("store: check in tickets: lock ticket: %w", err)
 	}
 
 	switch {
 	case ticketCheckIn.Ticket.Status == "used":
-		return nil, fmt.Errorf("store: check in tickets: %w", ErrAlreadyCheckedIn)
+		return nil, ErrAlreadyCheckedIn
 	case ticketCheckIn.Ticket.Status == "cancelled":
-		return nil, fmt.Errorf("store: check in tickets: %w", ErrTicketCancelled)
+		return nil, ErrTicketCancelled
 	case tierEventID.String() != eventID.String():
-		return nil, fmt.Errorf("store: check in tickets: %w", ErrWrongEvent)
+		return nil, ErrWrongEvent
 	}
 
 	// flip ticket status

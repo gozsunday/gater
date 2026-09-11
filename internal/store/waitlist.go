@@ -63,9 +63,9 @@ func (s *WaitlistStore) Create(ctx context.Context, entry *WaitlistEntry) error 
 		// tier in ANY state (waiting/notified/expired/purchased)
 		var pgErr *pgconn.PgError
 		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
-			return fmt.Errorf("store: create waitlist entry: %w", ErrConflict)
+			return ErrConflict
 		}
-		return fmt.Errorf("store: create waitlist entry: %w", err)
+		return err
 	}
 
 	return nil
@@ -79,10 +79,10 @@ func (s *WaitlistStore) DeleteByUserAndTier(ctx context.Context, userID, tierID 
 
 	ct, err := s.pool.Exec(ctx, query, userID, tierID)
 	if err != nil {
-		return fmt.Errorf("store: delete waitlist entry: %w", err)
+		return err
 	}
 	if ct.RowsAffected() == 0 {
-		return fmt.Errorf("store: delete waitlist entry: %w", ErrNotFound)
+		return ErrNotFound
 	}
 
 	return nil
@@ -103,7 +103,7 @@ func (s *WaitlistStore) ListByEvent(ctx context.Context, eventID string) ([]Wait
 
 	rows, err := s.pool.Query(ctx, query, eventID)
 	if err != nil {
-		return nil, fmt.Errorf("store: list waitlist by event: %w", err)
+		return nil, err
 	}
 	defer rows.Close()
 
@@ -119,13 +119,13 @@ func (s *WaitlistStore) ListByEvent(ctx context.Context, eventID string) ([]Wait
 			&summary.CreatedAt,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("store: list waitlist by event: %w", err)
+			return nil, err
 		}
 		summaries = append(summaries, summary)
 	}
 	// get errors the iteration itself hit
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("store: list waitlist by event: %w", err)
+		return nil, err
 	}
 
 	return summaries, nil
@@ -141,13 +141,13 @@ func (s *WaitlistStore) ExpireReservations(ctx context.Context) ([]*WaitlistEntr
 
 	rows, err := s.pool.Query(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("store: expire waitlist reservations: %w", err)
+		return nil, err
 	}
 	defer rows.Close()
 
 	waitlistEntries, err := pgx.CollectRows(rows, pgx.RowToAddrOf[WaitlistEntry])
 	if err != nil {
-		return nil, fmt.Errorf("store: expire waitlist reservations: %w", err)
+		return nil, err
 	}
 
 	return waitlistEntries, nil
@@ -197,7 +197,7 @@ func (s *WaitlistStore) NotifyNextWaiting(
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil, "", "", fmt.Errorf("store: notify next waiting: %w", ErrNotFound)
+			return nil, nil, "", "", ErrNotFound
 		}
 		return nil, nil, "", "", fmt.Errorf("store: notify next waiting: get entry: %w", err)
 	}
@@ -222,7 +222,7 @@ func (s *WaitlistStore) NotifyNextWaiting(
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil, "", "", fmt.Errorf("store: notify next waiting: %w", ErrNotFound)
+			return nil, nil, "", "", ErrNotFound
 		}
 		return nil, nil, "", "", fmt.Errorf("store: notify next waiting: set as notified: %w", err)
 	}
@@ -243,7 +243,7 @@ func (s *WaitlistStore) DeleteByEvent(ctx context.Context, eventID string) error
 	`
 
 	if _, err := s.pool.Exec(ctx, query, eventID); err != nil {
-		return fmt.Errorf("store: delete waitlist by event: %w", err)
+		return err
 	}
 
 	return nil

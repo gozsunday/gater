@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -40,7 +39,7 @@ func (v *VerificationStore) Create(ctx context.Context, params CreateVerificatio
 		params.HashedToken, params.ExpiresAt,
 	)
 	if err != nil {
-		return fmt.Errorf("store: create verification: %w", err)
+		return err
 	}
 
 	return nil
@@ -60,12 +59,10 @@ func (v *VerificationStore) Get(ctx context.Context, hashedToken string) (*Verif
 	)
 
 	if err != nil {
-		switch {
-		case errors.Is(err, pgx.ErrNoRows):
-			return nil, fmt.Errorf("store: get verification: %w", ErrNotFound)
-		default:
-			return nil, fmt.Errorf("store: get verification: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
 		}
+		return nil, err
 	}
 
 	return verification, nil
@@ -87,12 +84,10 @@ func (v *VerificationStore) GetLatest(ctx context.Context, identifier string) (*
 	)
 
 	if err != nil {
-		switch {
-		case errors.Is(err, pgx.ErrNoRows):
-			return nil, fmt.Errorf("store: get latest verification: %w", ErrNotFound)
-		default:
-			return nil, fmt.Errorf("store: get latest verification: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
 		}
+		return nil, err
 	}
 
 	return verification, nil
@@ -111,7 +106,7 @@ func (v *VerificationStore) CountSince(ctx context.Context, identifier string, s
 
 	err := v.pool.QueryRow(ctx, query, identifier, timeCutoff).Scan(&count)
 	if err != nil {
-		return 0, fmt.Errorf("store: count verifications since: %w", err)
+		return 0, err
 	}
 
 	return count, nil
@@ -124,7 +119,7 @@ func (v *VerificationStore) Delete(ctx context.Context, ID string) error {
   `
 
 	if _, err := v.pool.Exec(ctx, query, ID); err != nil {
-		return fmt.Errorf("store: delete verification: %w", err)
+		return err
 	}
 
 	return nil
@@ -137,7 +132,7 @@ func (v *VerificationStore) DeleteByIdentifier(ctx context.Context, identifier s
   `
 
 	if _, err := v.pool.Exec(ctx, query, identifier); err != nil {
-		return fmt.Errorf("store: delete verification by identifier: %w", err)
+		return err
 	}
 
 	return nil

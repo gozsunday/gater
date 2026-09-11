@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"errors"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -59,7 +58,7 @@ func (s *EventsStore) Create(ctx context.Context, event *Event) error {
 		&event.MaxTicketsPerPurchase, &event.MaterialChangedAt, &event.CreatedAt, &event.UpdatedAt,
 	)
 	if err != nil {
-		return fmt.Errorf("store: create event: %w", err)
+		return err
 	}
 
 	return nil
@@ -93,7 +92,7 @@ func (s *EventsStore) Update(ctx context.Context, event *Event) error {
 		&event.MaxTicketsPerPurchase, &event.MaterialChangedAt, &event.CreatedAt, &event.UpdatedAt,
 	)
 	if err != nil {
-		return fmt.Errorf("store: update event: %w", err)
+		return err
 	}
 
 	return nil
@@ -107,10 +106,10 @@ func (s *EventsStore) Delete(ctx context.Context, id string) error {
 
 	ct, err := s.pool.Exec(ctx, query, id)
 	if err != nil {
-		return fmt.Errorf("store: delete event: %w", err)
+		return err
 	}
 	if ct.RowsAffected() == 0 {
-		return fmt.Errorf("store: delete event: %w", ErrNotFound)
+		return ErrNotFound
 	}
 
 	return nil
@@ -136,9 +135,9 @@ func (s *EventsStore) Publish(ctx context.Context, id string) (*Event, error) {
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("store: publish event: %w", ErrConflict)
+			return nil, ErrConflict
 		}
-		return nil, fmt.Errorf("store: publish event: %w", err)
+		return nil, err
 	}
 
 	return event, nil
@@ -163,9 +162,9 @@ func (s *EventsStore) Cancel(ctx context.Context, id string) (*Event, error) {
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("store: cancel event: %w", ErrConflict)
+			return nil, ErrConflict
 		}
-		return nil, fmt.Errorf("store: cancel event: %w", err)
+		return nil, err
 	}
 
 	return event, nil
@@ -179,7 +178,7 @@ func (s *EventsStore) SetStatus(ctx context.Context, id, from, to string) error 
   `
 
 	if _, err := s.pool.Exec(ctx, query, id, from, to); err != nil {
-		return fmt.Errorf("store: set event status: %w", err)
+		return err
 	}
 
 	return nil
@@ -203,12 +202,10 @@ func (s *EventsStore) GetByID(ctx context.Context, id string) (*Event, error) {
 	)
 
 	if err != nil {
-		switch {
-		case errors.Is(err, pgx.ErrNoRows):
-			return nil, fmt.Errorf("store: get event by id: %w", ErrNotFound)
-		default:
-			return nil, fmt.Errorf("store: get event by id: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
 		}
+		return nil, err
 	}
 
 	return event, nil
@@ -238,13 +235,13 @@ func (s *EventsStore) GetAllPublished(
 
 	rows, err := s.pool.Query(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("store: get published events: %w", err)
+		return nil, err
 	}
 	defer rows.Close()
 
 	events, err := pgx.CollectRows(rows, pgx.RowToAddrOf[Event])
 	if err != nil {
-		return nil, fmt.Errorf("store: collect published events: %w", err)
+		return nil, err
 	}
 
 	return events, nil
@@ -262,13 +259,13 @@ func (s *EventsStore) EndAllExpired(ctx context.Context) ([]*Event, error) {
 
 	rows, err := s.pool.Query(ctx, query)
 	if err != nil {
-		return nil, fmt.Errorf("store: end all expired events: %w", err)
+		return nil, err
 	}
 	defer rows.Close()
 
 	events, err := pgx.CollectRows(rows, pgx.RowToAddrOf[Event])
 	if err != nil {
-		return nil, fmt.Errorf("store: end all expired events: %w", err)
+		return nil, err
 	}
 
 	return events, nil

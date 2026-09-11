@@ -3,7 +3,6 @@ package store
 import (
 	"context"
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -42,7 +41,7 @@ func (s *TiersStore) Create(ctx context.Context, tier *Tier) error {
 		&tier.Remaining, &tier.Status, &tier.CreatedAt, &tier.UpdatedAt,
 	)
 	if err != nil {
-		return fmt.Errorf("store: create tier: %w", err)
+		return err
 	}
 
 	return nil
@@ -56,10 +55,10 @@ func (s *TiersStore) Delete(ctx context.Context, id, eventID string) error {
 
 	ct, err := s.pool.Exec(ctx, query, id, eventID)
 	if err != nil {
-		return fmt.Errorf("store: delete tier: %w", err)
+		return err
 	}
 	if ct.RowsAffected() == 0 {
-		return fmt.Errorf("store: delete tier: %w", ErrNotFound)
+		return ErrNotFound
 	}
 
 	return nil
@@ -75,7 +74,7 @@ func (s *TiersStore) CountByEvent(ctx context.Context, eventID string) (int, err
 	var count int
 	err := s.pool.QueryRow(ctx, query, eventID).Scan(&count)
 	if err != nil {
-		return 0, fmt.Errorf("store: count tiers by event: %w", err)
+		return 0, err
 	}
 
 	return count, nil
@@ -95,12 +94,10 @@ func (s *TiersStore) GetByID(ctx context.Context, id string) (*Tier, error) {
 		&tier.Remaining, &tier.Status, &tier.CreatedAt, &tier.UpdatedAt,
 	)
 	if err != nil {
-		switch {
-		case errors.Is(err, pgx.ErrNoRows):
-			return nil, fmt.Errorf("store: get tier by id: %w", ErrNotFound)
-		default:
-			return nil, fmt.Errorf("store: get tier by id: %w", err)
+		if errors.Is(err, pgx.ErrNoRows) {
+			return nil, ErrNotFound
 		}
+		return nil, err
 	}
 
 	return tier, nil
@@ -123,7 +120,7 @@ func (s *TiersStore) Update(ctx context.Context, tier *Tier) error {
 		&tier.Remaining, &tier.Status, &tier.CreatedAt, &tier.UpdatedAt,
 	)
 	if err != nil {
-		return fmt.Errorf("store: update tier: %w", err)
+		return err
 	}
 
 	return nil
@@ -140,13 +137,13 @@ func (s *TiersStore) ListByEvent(ctx context.Context, eventID string) ([]*Tier, 
 
 	rows, err := s.pool.Query(ctx, query, eventID)
 	if err != nil {
-		return nil, fmt.Errorf("store: list tiers by event: %w", err)
+		return nil, err
 	}
 	defer rows.Close()
 
 	tiers, err := pgx.CollectRows(rows, pgx.RowToAddrOf[Tier])
 	if err != nil {
-		return nil, fmt.Errorf("store: collect tiers by event: %w", err)
+		return nil, err
 	}
 
 	return tiers, nil
@@ -162,7 +159,7 @@ func (s *TiersStore) SumQuantityByEvent(ctx context.Context, eventID string) (in
 	var sum int
 	err := s.pool.QueryRow(ctx, query, eventID).Scan(&sum)
 	if err != nil {
-		return 0, fmt.Errorf("store: sum tier quantities by event: %w", err)
+		return 0, err
 	}
 
 	return sum, nil
