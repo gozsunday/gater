@@ -19,7 +19,7 @@ No tests, no linter, no formatter config.
 ## Architecture
 
 `cmd/server/` — `package main`, HTTP handlers, chi routing, middleware.  
-`internal/` — `config/` (godotenv), `db/` (pgxpool), `store/` (raw SQL via pgx, 5s per-query timeout; `users`, `sessions`, `verifications`, `oauth`, `events`, `tiers`, `purchases`, `waitlist`, `tickets`), `auth/` (argon2id, SHA-256 tokens), `jsonutil/`, `validator/` (go-playground), `mailer/` (Resend), `qr/` (HMAC-SHA256 ticket tokens).  
+`internal/` — `config/` (godotenv), `db/` (pgxpool), `store/` (raw SQL via pgx, 5s timeout on multi-statement transactions only — single queries inherit the caller's ctx; `users`, `sessions`, `verifications`, `oauth`, `events`, `tiers`, `purchases`, `waitlist`, `tickets`), `auth/` (argon2id, SHA-256 tokens), `jsonutil/`, `validator/` (go-playground), `mailer/` (Resend), `qr/` (HMAC-SHA256 ticket tokens).  
 `cmd/migrate/` — goose runner with embedded SQL.  
 `internal/cache/redis.go` is the Redis factory, wired in `main.go` → shared `*redis.Client` reused by Asynq client/server/scheduler (`internal/worker/client.go`, `server.go`); `internal/worker/` holds email + waitlist + periodic handlers.
 
