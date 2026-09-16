@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/goziemsunday/gater/internal/store"
+	"github.com/gozsunday/gater/internal/store"
 	"github.com/hibiken/asynq"
 )
 

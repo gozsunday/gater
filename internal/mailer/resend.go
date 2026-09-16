@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/goziemsunday/gater/internal/config"
+	"github.com/gozsunday/gater/internal/config"
 	"github.com/resend/resend-go/v3"
 )
 

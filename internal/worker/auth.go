@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/goziemsunday/gater/internal/mailer"
+	"github.com/gozsunday/gater/internal/mailer"
 	"github.com/hibiken/asynq"
 )
 

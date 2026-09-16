@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/goziemsunday/gater/internal/jsonutil"
-	"github.com/goziemsunday/gater/internal/qr"
-	"github.com/goziemsunday/gater/internal/store"
+	"github.com/gozsunday/gater/internal/jsonutil"
+	"github.com/gozsunday/gater/internal/qr"
+	"github.com/gozsunday/gater/internal/store"
 )
 
 type CheckInPayload struct {

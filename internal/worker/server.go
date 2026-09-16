@@ -4,8 +4,8 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/goziemsunday/gater/internal/mailer"
-	"github.com/goziemsunday/gater/internal/store"
+	"github.com/gozsunday/gater/internal/mailer"
+	"github.com/gozsunday/gater/internal/store"
 	"github.com/hibiken/asynq"
 	"github.com/redis/go-redis/v9"
 )

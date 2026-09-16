@@ -1,4 +1,4 @@
-module github.com/goziemsunday/gater
+module github.com/gozsunday/gater
 
 go 1.26.3
 

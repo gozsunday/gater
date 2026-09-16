@@ -6,8 +6,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/goziemsunday/gater/internal/jsonutil"
-	"github.com/goziemsunday/gater/internal/store"
+	"github.com/gozsunday/gater/internal/jsonutil"
+	"github.com/gozsunday/gater/internal/store"
 )
 
 func (a *application) joinWaitlist(w http.ResponseWriter, r *http.Request) {

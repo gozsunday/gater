@@ -13,11 +13,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
-	"github.com/goziemsunday/gater/internal/config"
-	"github.com/goziemsunday/gater/internal/jsonutil"
-	"github.com/goziemsunday/gater/internal/mailer"
-	"github.com/goziemsunday/gater/internal/store"
-	"github.com/goziemsunday/gater/internal/validator"
+	"github.com/gozsunday/gater/internal/config"
+	"github.com/gozsunday/gater/internal/jsonutil"
+	"github.com/gozsunday/gater/internal/mailer"
+	"github.com/gozsunday/gater/internal/store"
+	"github.com/gozsunday/gater/internal/validator"
 	"github.com/hibiken/asynq"
 )
 

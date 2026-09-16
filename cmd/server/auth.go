@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/goziemsunday/gater/internal/auth"
-	"github.com/goziemsunday/gater/internal/jsonutil"
-	"github.com/goziemsunday/gater/internal/store"
-	"github.com/goziemsunday/gater/internal/worker"
+	"github.com/gozsunday/gater/internal/auth"
+	"github.com/gozsunday/gater/internal/jsonutil"
+	"github.com/gozsunday/gater/internal/store"
+	"github.com/gozsunday/gater/internal/worker"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 )
