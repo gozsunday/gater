@@ -88,55 +88,6 @@ or:
 {"valid": false, "reason": "already checked in"}
 ```
 
-## API overview
-
-### Authentication
-
-```text
-POST /api/auth/register
-POST /api/auth/login
-POST /api/auth/verify-email
-POST /api/auth/resend-verification
-POST /api/auth/forgot-password
-POST /api/auth/reset-password
-GET  /api/auth/google
-GET  /api/auth/google/callback
-POST /api/auth/logout
-POST /api/auth/become-organizer
-GET  /api/auth/me
-```
-
-### Events and tiers
-
-```text
-GET    /api/events
-GET    /api/events/{id}
-POST   /api/events
-PATCH  /api/events/{id}
-DELETE /api/events/{id}
-POST   /api/events/{id}/publish
-POST   /api/events/{id}/cancel
-GET    /api/events/{id}/tiers
-POST   /api/events/{id}/tiers
-PATCH  /api/events/{id}/tiers/{tierId}
-DELETE /api/events/{id}/tiers/{tierId}
-```
-
-### Purchases, waitlist, and check-in
-
-```text
-GET    /api/purchases
-POST   /api/purchases
-GET    /api/purchases/{id}
-POST   /api/purchases/{id}/cancel
-POST   /api/events/{id}/tiers/{tierId}/waitlist
-DELETE /api/events/{id}/tiers/{tierId}/waitlist
-GET    /api/events/{id}/waitlist
-POST   /api/events/{id}/checkin
-```
-
-Organizer analytics remain planned and are not yet implemented.
-
 ## Data model and lifecycle
 
 Core entities include users, sessions, events, ticket tiers, purchases, tickets, waitlist entries, verifications, and OAuth accounts.
