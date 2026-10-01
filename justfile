@@ -23,3 +23,7 @@ db-down:
 # Bring down the DB and Redis containers and delete volumes
 db-delete:
     docker compose down -v
+
+# Run tests with disabled cache
+test:
+  go test -count=1 -p 1 ./...
