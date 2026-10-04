@@ -11,17 +11,20 @@ just migrate   # runs goose migrations (go run cmd/migrate/main.go)
 just db-up     # docker compose up -d (PG:5435, Redis:6380)
 just db-down   # docker compose down
 just db-delete # docker compose down -v
+just test      # go test -count=1 -p 1 ./...
 go build -o bin/server ./cmd/server
 ```
 
-No tests, no linter, no formatter config.
+No linter, no formatter config. Tests follow [TESTS_PLAN.md](TESTS_PLAN.md): stdlib `testing` only (no testify), external `_test` packages, `errors.Is` against store sentinels, real Postgres via `internal/testdb` (never mocked), no `t.Parallel` on DB tests.
 
 ## Architecture
 
 `cmd/server/` — `package main`, HTTP handlers, chi routing, middleware.  
 `internal/` — `config/` (godotenv), `db/` (pgxpool), `store/` (raw SQL via pgx, 5s timeout on multi-statement transactions only — single queries inherit the caller's ctx; `users`, `sessions`, `verifications`, `oauth`, `events`, `tiers`, `purchases`, `waitlist`, `tickets`), `auth/` (argon2id, SHA-256 tokens), `jsonutil/`, `validator/` (go-playground), `mailer/` (Resend), `qr/` (HMAC-SHA256 ticket tokens).  
-`cmd/migrate/` — goose runner with embedded SQL.  
+`cmd/migrate/` — goose runner; `cmd/migrate/migrations/` is an importable package holding `//go:embed *.sql`, shared by the binary and `internal/testdb` (embed strips the dir prefix, so `goose.Up` takes `"."`, not `"migrations"`).  
 `internal/cache/redis.go` is the Redis factory, wired in `main.go` → shared `*redis.Client` reused by Asynq client/server/scheduler (`internal/worker/client.go`, `server.go`); `internal/worker/` holds email + waitlist + periodic handlers.
+
+`internal/testdb/` — test-only helper. `Open(t)` creates + migrates the separate `gater_test` database (`TEST_DATABASE_URL`, else Compose DSN on 5435) and returns a `*pgxpool.Pool`; `Truncate(t, pool)` clears data via an explicit table list — a new table from a migration must be added there.
 
 Handlers manually wired into `application` struct in `main.go` — no DI framework.
 
