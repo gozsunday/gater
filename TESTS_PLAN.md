@@ -183,7 +183,7 @@ nothing beyond a running Postgres. Redis is not required for Layers 1 through 3.
 ## Progress
 
 - [x] `internal/testdb` helper, `just test` target, shared migration embed
-- [ ] `internal/qr`
+- [x] `internal/qr`
 - [ ] `internal/validator`
 - [ ] `internal/jsonutil`
 - [ ] `internal/cursor`
