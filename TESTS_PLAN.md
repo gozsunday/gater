@@ -25,6 +25,11 @@ These apply to every test written in this repo.
   `ErrConflict`, `ErrNotFound`, `ErrAlreadyCheckedIn`, `ErrOutsideCancellationWindow`
   and others. Never compare error strings.
 - **One behavior per test.** If the test name needs "and", split it.
+- **Name tests after the guarantee, not the operation.** `TestCursorRoundtrip`,
+  `TestCursorRoundtripPreservesNanoseconds`, `TestCursorRejectsMalformedInput`.
+  The name tells a future reader which invariant broke.
+- **A test must fail when the behavior it covers is broken.** If a test passes
+  both before and after a change, it guards nothing — drop it.
 - **Unique fixture values per test.** Derive emails and names from UUIDs so a
   leaked row cannot make an unrelated test fail.
 - **No `t.Parallel` for database tests.** Every package shares one `gater_test`
@@ -89,7 +94,7 @@ in the way.
 | `internal/qr`    | token roundtrip, wrong secret, tampered payload, non-base64, bad shape |
 | `internal/validator` | `ValidateStruct` and `ValidateVar` against a sample request struct |
 | `internal/jsonutil`  | `Read`, `Write`, `WriteData`, `WriteError`, `WriteErrors` envelopes |
-| `internal/cursor` | `Encode` / `Decode` roundtrip, malformed input, boundary values     |
+| `internal/cursor` | `Encode` / `Decode` roundtrip, malformed input, boundary values — done |
 | `internal/auth`  | `HashPassword` / `VerifyPassword`, `GenerateToken` / `HashToken` / `CompareToken`, `GenerateRandomOAuthState` |
 
 ### Layer 2 — store tests on the real database
@@ -186,7 +191,7 @@ nothing beyond a running Postgres. Redis is not required for Layers 1 through 3.
 - [x] `internal/qr`
 - [ ] `internal/validator`
 - [ ] `internal/jsonutil`
-- [ ] `internal/cursor`
+- [x] `internal/cursor`
 - [ ] `internal/auth`
 - [ ] `internal/store` — users and sessions
 - [ ] `internal/store` — events and tiers
