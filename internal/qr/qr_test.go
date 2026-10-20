@@ -22,8 +22,8 @@ var (
 )
 
 func TestVerifyTokenRoundTrip(t *testing.T) {
-	genToken := qr.GenerateToken(ticketID, purchaseID, tierID, testSecret)
-	verifiedTicketID, err := qr.VerifyToken(genToken, testSecret)
+	token := qr.GenerateToken(ticketID, purchaseID, tierID, testSecret)
+	verifiedTicketID, err := qr.VerifyToken(token, testSecret)
 	if err != nil {
 		t.Fatalf("verify token: %v", err)
 	}
@@ -36,29 +36,19 @@ func signPayload(payload, secret string) string {
 	h := hmac.New(sha256.New, []byte(secret))
 	h.Write([]byte(payload))
 
-	signed := fmt.Appendf(nil, "%s%x", ".", h.Sum(nil))
+	signed := fmt.Appendf(nil, "%s%s%x", payload, ".", h.Sum(nil))
 	return base64.RawURLEncoding.EncodeToString(signed)
 }
 
-func TestVerifyTokenWrongSecret(t *testing.T) {
-	genToken := qr.GenerateToken(ticketID, purchaseID, tierID, testSecret)
-	verifiedTicketID, err := qr.VerifyToken(genToken, "fake_secret")
-	if err == nil {
-		t.Fatalf("wrong secret: an error should be returned")
-	}
-	if !errors.Is(err, qr.ErrInvalidToken) {
-		t.Errorf("wrong secret: got error %v, want %v", err, qr.ErrInvalidToken)
-	}
-	if verifiedTicketID != uuid.Nil {
-		t.Errorf("wrong secret: got ticketID %s, want %v", verifiedTicketID, uuid.Nil)
-	}
-}
+// test helper that returns a token whose payload has been edited but
+// whose original signature is kept
+func tamperedToken(t *testing.T) string {
+	t.Helper()
 
-func TestVerifyTokenTamperedPayload(t *testing.T) {
-	genToken := qr.GenerateToken(ticketID, purchaseID, tierID, testSecret)
+	token := qr.GenerateToken(ticketID, purchaseID, tierID, testSecret)
 
 	// decode the token so the payload can be edited
-	decoded, err := base64.RawURLEncoding.DecodeString(genToken)
+	decoded, err := base64.RawURLEncoding.DecodeString(token)
 	if err != nil {
 		t.Fatalf("tampered: decode generated token: %v", err)
 	}
@@ -67,102 +57,44 @@ func TestVerifyTokenTamperedPayload(t *testing.T) {
 	// replace the ticket ID part with another valid UUID (in this case tierID)
 	parts := strings.Split(payload, ":")
 	parts[0] = tierID.String()
-	tampered := base64.RawURLEncoding.EncodeToString(
+
+	return base64.RawURLEncoding.EncodeToString(
 		[]byte(strings.Join(parts, ":") + "." + sig),
 	)
-
-	verifiedTicketID, err := qr.VerifyToken(tampered, testSecret)
-	if err == nil {
-		t.Fatalf("tampered: an error should be returned")
-	}
-	if !errors.Is(err, qr.ErrInvalidToken) {
-		t.Errorf("tampered: got error %v, want %v", err, qr.ErrInvalidToken)
-	}
-	if verifiedTicketID != uuid.Nil {
-		t.Errorf("tampered: got ticketID %s, want %v", verifiedTicketID, uuid.Nil)
-	}
 }
 
-func TestVerifyTokenNotBase64(t *testing.T) {
-	token := "!!!not-base64!!!"
-	verifiedTicketID, err := qr.VerifyToken(token, testSecret)
-	if err == nil {
-		t.Fatalf("not base64: an error should be returned")
-	}
-	if !errors.Is(err, qr.ErrInvalidToken) {
-		t.Errorf("not base64: got error %v, want %v", err, qr.ErrInvalidToken)
-	}
-	if verifiedTicketID != uuid.Nil {
-		t.Errorf("not base64: got ticketID %s, want %v", verifiedTicketID, uuid.Nil)
-	}
-}
+func TestVerifyTokenRejectsInvalidToken(t *testing.T) {
+	validToken := qr.GenerateToken(ticketID, purchaseID, tierID, testSecret)
 
-func TestVerifyTokenMissingSignatureSeparator(t *testing.T) {
-	token := "payload-with-no-dot"
-	verifiedTicketID, err := qr.VerifyToken(token, testSecret)
-	if err == nil {
-		t.Fatalf("missing signature separator: an error should be returned")
+	tests := []struct {
+		name   string
+		token  string
+		secret string
+	}{
+		{name: "wrong secret", token: validToken, secret: "fake_secret"},
+		{name: "not base64", token: "!!!not-base64!!!", secret: testSecret},
+		{name: "missing signature separator", token: "payload-with-no-dot", secret: testSecret},
+		{name: "non hex signature", token: base64.RawURLEncoding.EncodeToString([]byte("payload.zzzz")), secret: testSecret},
+		{name: "payload too few parts", token: signPayload("no-colon", testSecret), secret: testSecret},
+		{name: "payload too many parts", token: signPayload("a:b:c:d", testSecret), secret: testSecret},
+		{name: "non-UUID ticket ID", token: signPayload("not-a-uuid:purchase:tier", testSecret), secret: testSecret},
+		{name: "tampered payload", token: tamperedToken(t), secret: testSecret},
 	}
-	if !errors.Is(err, qr.ErrInvalidToken) {
-		t.Errorf("missing signature separator: got error %v, want %v", err, qr.ErrInvalidToken)
-	}
-	if verifiedTicketID != uuid.Nil {
-		t.Errorf("missing signature separator: got ticketID %s, want %v", verifiedTicketID, uuid.Nil)
-	}
-}
 
-func TestVerifyTokenNonHexSignature(t *testing.T) {
-	token := base64.RawURLEncoding.EncodeToString([]byte("payload.zzzz"))
-	verifiedTicketID, err := qr.VerifyToken(token, testSecret)
-	if err == nil {
-		t.Fatalf("non hex signature: an error should be returned")
-	}
-	if !errors.Is(err, qr.ErrInvalidToken) {
-		t.Errorf("non hex signature: got error %v, want %v", err, qr.ErrInvalidToken)
-	}
-	if verifiedTicketID != uuid.Nil {
-		t.Errorf("non hex signature: got ticketID %s, want %v", verifiedTicketID, uuid.Nil)
-	}
-}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			t.Parallel()
 
-func TestVerifyTokenPayloadWrongPartCount(t *testing.T) {
-	token := signPayload("no-colon", testSecret)
-	verifiedTicketID, err := qr.VerifyToken(token, testSecret)
-	if err == nil {
-		t.Fatalf("wrong part count: an error should be returned")
-	}
-	if !errors.Is(err, qr.ErrInvalidToken) {
-		t.Errorf("wrong part count: got error %v, want %v", err, qr.ErrInvalidToken)
-	}
-	if verifiedTicketID != uuid.Nil {
-		t.Errorf("wrong part count: got ticketID %s, want %v", verifiedTicketID, uuid.Nil)
-	}
-}
-
-func TestVerifyTokenPayloadTooManyParts(t *testing.T) {
-	token := signPayload("a:b:c:d", testSecret)
-	verifiedTicketID, err := qr.VerifyToken(token, testSecret)
-	if err == nil {
-		t.Fatalf("too many parts: an error should be returned")
-	}
-	if !errors.Is(err, qr.ErrInvalidToken) {
-		t.Errorf("too many parts: got error %v, want %v", err, qr.ErrInvalidToken)
-	}
-	if verifiedTicketID != uuid.Nil {
-		t.Errorf("too many parts: got ticketID %s, want %v", verifiedTicketID, uuid.Nil)
-	}
-}
-
-func TestVerifyTokenNonUUIDTicketID(t *testing.T) {
-	token := signPayload("not-a-uuid:purchase:tier", testSecret)
-	verifiedTicketID, err := qr.VerifyToken(token, testSecret)
-	if err == nil {
-		t.Fatalf("non-UUID ticketID: an error should be returned")
-	}
-	if !errors.Is(err, qr.ErrInvalidToken) {
-		t.Errorf("non-UUID ticketID: got error %v, want %v", err, qr.ErrInvalidToken)
-	}
-	if verifiedTicketID != uuid.Nil {
-		t.Errorf("non-UUID ticketID: got ticketID %s, want %v", verifiedTicketID, uuid.Nil)
+			got, err := qr.VerifyToken(tt.token, tt.secret)
+			if err == nil {
+				t.Fatalf("%s: an error should be returned", tt.name)
+			}
+			if !errors.Is(err, qr.ErrInvalidToken) {
+				t.Errorf("%s: got error %v, want %v", tt.name, err, qr.ErrInvalidToken)
+			}
+			if got != uuid.Nil {
+				t.Errorf("%s: got ticketID %s, want %v", tt.name, got, uuid.Nil)
+			}
+		})
 	}
 }
