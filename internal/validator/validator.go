@@ -1,6 +1,7 @@
 package validator
 
 import (
+	"reflect"
 	"strings"
 
 	"github.com/go-playground/validator/v10"
@@ -16,9 +17,19 @@ type playgroundValidator struct {
 }
 
 func New() Validator {
-	return &playgroundValidator{
-		v: validator.New(validator.WithRequiredStructEnabled()),
-	}
+	v := validator.New(validator.WithRequiredStructEnabled())
+
+	// report errors using the JSON tag name so messages match 
+  // the keys the client sent, rather than the Go field name
+	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		name, _, _ := strings.Cut(fld.Tag.Get("json"), ",")
+		if name == "" || name == "-" {
+			return fld.Name
+		}
+		return name
+	})
+
+	return &playgroundValidator{v: v}
 }
 
 func (v *playgroundValidator) ValidateStruct(s any) ([]string, bool) {
@@ -30,7 +41,7 @@ func (v *playgroundValidator) ValidateStruct(s any) ([]string, bool) {
 	errs := v.v.Struct(s).(validator.ValidationErrors)
 	var errMsgs []string
 	for _, e := range errs {
-		field := strings.ToLower(e.Field())
+		field := e.Field()
 		param := e.Param()
 
 		switch e.Tag() {
