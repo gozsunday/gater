@@ -19,8 +19,8 @@ type playgroundValidator struct {
 func New() Validator {
 	v := validator.New(validator.WithRequiredStructEnabled())
 
-	// report errors using the JSON tag name so messages match 
-  // the keys the client sent, rather than the Go field name
+	// report errors using the JSON tag name so messages match
+	// the keys the client sent, rather than the Go field name
 	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
 		name, _, _ := strings.Cut(fld.Tag.Get("json"), ",")
 		if name == "" || name == "-" {
